@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/examples/">
+    <Project Path="examples/BasicChat/BasicChat.csproj" />
+    <Project Path="examples/GiftTracker/GiftTracker.csproj" />
+    <Project Path="examples/OnlineCheck/OnlineCheck.csproj" />
+    <Project Path="examples/StreamInfo/StreamInfo.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/TikTokLive/TikTokLive.csproj" />
+  </Folder>
+</Solution>
