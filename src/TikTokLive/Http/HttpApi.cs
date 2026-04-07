@@ -44,7 +44,7 @@ namespace TikTokLive.Http
             string clean = username.Trim().TrimStart('@');
             string url = TikTokUrlWeb +
                 "api-live/user/room?aid=1988&app_name=tiktok_web&device_platform=web_pc" +
-                "&app_language=en&browser_language=en-US&region=RO&user_is_login=false" +
+                "&app_language=en&browser_language=en-US&user_is_login=false" +
                 $"&uniqueId={Uri.EscapeDataString(clean)}&sourceType=54&staleTime=600000";
 
             using (var client = BuildClient(timeout, null))

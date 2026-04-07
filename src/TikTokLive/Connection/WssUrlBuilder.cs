@@ -4,10 +4,12 @@ namespace TikTokLive.Connection
 {
     internal static class WssUrlBuilder
     {
-        public static string Build(string cdnHost, string roomId, string timezone)
+        public static string Build(string cdnHost, string roomId, string timezone,
+            string language = "en", string region = "US")
         {
             double lastRtt = 100.0 + new Random().NextDouble() * 100.0;
             string rttStr = lastRtt.ToString("F3");
+            string browserLanguage = $"{language}-{region}";
 
             string query = string.Join("&", new[]
             {
@@ -16,7 +18,7 @@ namespace TikTokLive.Connection
                 "cookie_enabled=true",
                 "screen_width=1920",
                 "screen_height=1080",
-                "browser_language=en-US",
+                "browser_language=" + browserLanguage,
                 "browser_platform=" + Uri.EscapeDataString("Linux x86_64"),
                 "browser_name=Mozilla",
                 "browser_version=" + Uri.EscapeDataString("5.0 (X11)"),
@@ -26,11 +28,11 @@ namespace TikTokLive.Connection
                 "sup_ws_ds_opt=1",
                 "update_version_code=2.0.0",
                 "compress=gzip",
-                "webcast_language=en",
+                "webcast_language=" + language,
                 "ws_direct=1",
                 "aid=1988",
                 "live_id=12",
-                "app_language=en",
+                "app_language=" + language,
                 "client_enter=1",
                 "room_id=" + roomId,
                 "identity=audience",

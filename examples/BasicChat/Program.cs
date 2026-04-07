@@ -4,7 +4,7 @@
 //   dotnet run -- <tiktok_username>
 //
 // Example:
-//   dotnet run -- hacker_lautar
+//   dotnet run -- tiktok
 
 using System;
 using System.Threading;
@@ -20,7 +20,7 @@ class Program
             Console.WriteLine("Usage: BasicChat <tiktok_username>");
             Console.WriteLine();
             Console.WriteLine("Example:");
-            Console.WriteLine("  BasicChat hacker_lautar");
+            Console.WriteLine("  BasicChat tiktok");
             return;
         }
 

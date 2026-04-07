@@ -15,10 +15,10 @@
     <Authors>Zmole Cristian</Authors>
     <Description>TikTok Live WebSocket connector — real-time chat, gifts, likes, and viewer events. No authentication required.</Description>
     <PackageLicenseExpression>0BSD</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/PirateTok/live-cs</PackageProjectUrl>
+    <PackageProjectUrl>https://piratetok.boats</PackageProjectUrl>
     <RepositoryUrl>https://github.com/PirateTok/live-cs</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageTags>tiktok;live;stream;websocket;protobuf;events</PackageTags>
+    <PackageTags>tiktok;tiktok-live;live;stream;chat;gifts;websocket;protobuf;realtime;piratetok;events</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <IncludeSymbols>true</IncludeSymbols>

@@ -69,4 +69,31 @@ namespace TikTokLive.Errors
         public ProtocolException(string message, Exception inner)
             : base($"protocol error: {message}", inner) { }
     }
+
+    public class ProfilePrivateException : TikTokLiveException
+    {
+        public string Username { get; }
+        public ProfilePrivateException(string username)
+            : base($"profile is private: @{username}") => Username = username;
+    }
+
+    public class ProfileNotFoundException : TikTokLiveException
+    {
+        public string Username { get; }
+        public ProfileNotFoundException(string username)
+            : base($"profile not found: @{username}") => Username = username;
+    }
+
+    public class ProfileScrapeException : TikTokLiveException
+    {
+        public ProfileScrapeException(string reason)
+            : base($"failed to scrape profile: {reason}") { }
+    }
+
+    public class ProfileErrorException : TikTokLiveException
+    {
+        public long Code { get; }
+        public ProfileErrorException(long code)
+            : base($"profile fetch error: statusCode={code}") => Code = code;
+    }
 }

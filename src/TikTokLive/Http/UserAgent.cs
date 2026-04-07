@@ -43,5 +43,30 @@ namespace TikTokLive.Http
                 return id;
             return "UTC";
         }
+
+        /// <summary>
+        /// Detect system locale as (language, region).
+        /// Uses CultureInfo on .NET, falls back to ("en", "US").
+        /// </summary>
+        public static (string Language, string Region) SystemLocale()
+        {
+            try
+            {
+                string name = System.Globalization.CultureInfo.CurrentCulture.Name;
+                if (!string.IsNullOrEmpty(name))
+                {
+                    string[] parts = name.Split('-');
+                    if (parts.Length >= 2 && parts[0].Length >= 2)
+                        return (parts[0].ToLowerInvariant(), parts[1].ToUpperInvariant());
+                    if (parts.Length == 1 && parts[0].Length >= 2)
+                        return (parts[0].ToLowerInvariant(), "US");
+                }
+            }
+            catch (Exception) { }
+            return ("en", "US");
+        }
+
+        public static string SystemLanguage() => SystemLocale().Language;
+        public static string SystemRegion() => SystemLocale().Region;
     }
 }

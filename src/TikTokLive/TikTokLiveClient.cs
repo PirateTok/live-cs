@@ -22,6 +22,8 @@ namespace TikTokLive
         private IWebProxy? _proxy;
         private string? _userAgent;
         private string? _cookies;
+        private string? _language;
+        private string? _region;
 
         // lifecycle
         public event Action<string>? OnConnected;
@@ -120,6 +122,18 @@ namespace TikTokLive
             return this;
         }
 
+        public TikTokLiveClient Language(string lang)
+        {
+            _language = lang;
+            return this;
+        }
+
+        public TikTokLiveClient Region(string reg)
+        {
+            _region = reg;
+            return this;
+        }
+
         public static Task<RoomIdResult> CheckOnlineAsync(
             string username, TimeSpan timeout, CancellationToken ct = default)
             => HttpApi.CheckOnlineAsync(username, timeout, ct);
@@ -136,6 +150,8 @@ namespace TikTokLive
             EmitEvent(TikTokLiveEvent.Connected(room.RoomId));
 
             string tz = Http.UserAgent.SystemTimezone();
+            string lang = _language ?? Http.UserAgent.SystemLanguage();
+            string reg = _region ?? Http.UserAgent.SystemRegion();
             int attempt = 0;
             while (!ct.IsCancellationRequested)
             {
@@ -145,7 +161,7 @@ namespace TikTokLive
                 string ttwid = await TtwidAuth.FetchTtwidAsync(_timeout, ua, ct)
                     .ConfigureAwait(false);
 
-                string wssUrl = WssUrlBuilder.Build(_cdnHost, room.RoomId, tz);
+                string wssUrl = WssUrlBuilder.Build(_cdnHost, room.RoomId, tz, lang, reg);
 
                 var loop = new SocketLoop(wssUrl, ttwid, room.RoomId,
                     ua, _cookies,

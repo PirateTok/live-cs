@@ -2,5 +2,7 @@ bin/
 obj/
 *.nupkg
 *.snupkg
+nupkg/
 .vs/
 *.user
+release.sh

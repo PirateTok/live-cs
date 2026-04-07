@@ -4,7 +4,7 @@
 //   dotnet run -- <tiktok_username> [username2] [username3] ...
 //
 // Example:
-//   dotnet run -- hacker_lautar contexpirat blue131713
+//   dotnet run -- tiktok
 
 using System;
 using System.Threading.Tasks;
