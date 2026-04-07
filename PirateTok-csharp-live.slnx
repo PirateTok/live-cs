@@ -8,4 +8,7 @@
   <Folder Name="/src/">
     <Project Path="src/TikTokLive/TikTokLive.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ReplayTests/ReplayTests.csproj" />
+  </Folder>
 </Solution>

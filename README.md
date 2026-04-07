@@ -98,6 +98,17 @@ dotnet run --project examples/StreamInfo -- <username>      # fetch room metadat
 dotnet run --project examples/GiftTracker -- <username>     # track gifts with diamond totals
 ```
 
+## Replay testing
+
+Deterministic cross-lib validation against binary WSS captures. Requires testdata from a separate repo:
+
+```bash
+git clone https://github.com/PirateTok/live-testdata ../live-testdata
+dotnet test
+```
+
+Tests skip gracefully if testdata is not found. You can also set `PIRATETOK_TESTDATA` to point to a custom location.
+
 ## Known gaps
 
 - `Proxy(...)` exists on the client surface, but proxy transport plumbing is not wired into `HttpClient` or `ClientWebSocket` yet.
