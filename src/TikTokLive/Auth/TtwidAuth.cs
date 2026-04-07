@@ -13,11 +13,16 @@ namespace TikTokLive.Auth
         private const string TikTokUrl = "https://www.tiktok.com/";
 
         public static async Task<string> FetchTtwidAsync(
-            TimeSpan timeout, string? userAgent = null, CancellationToken ct = default)
+            TimeSpan timeout, string? userAgent = null, string? proxy = null,
+            CancellationToken ct = default)
         {
             string ua = userAgent ?? UserAgent.RandomUa();
 
-            using (var handler = new HttpClientHandler { AllowAutoRedirect = false })
+            var handler = new HttpClientHandler { AllowAutoRedirect = false };
+            if (!string.IsNullOrEmpty(proxy))
+                handler.Proxy = new WebProxy(proxy);
+
+            using (handler)
             using (var client = new HttpClient(handler) { Timeout = timeout })
             {
                 client.DefaultRequestHeaders.UserAgent.ParseAdd(ua);

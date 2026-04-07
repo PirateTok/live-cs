@@ -11,6 +11,7 @@ namespace TikTokLive.Helpers
     public class ProfileCache
     {
         private readonly TimeSpan _ttl;
+        private readonly string? _proxy;
         private readonly string? _userAgent;
         private readonly string? _cookies;
         private readonly ConcurrentDictionary<string, CacheEntry> _entries = new();
@@ -26,10 +27,12 @@ namespace TikTokLive.Helpers
 
         public ProfileCache(
             TimeSpan? ttl = null,
+            string? proxy = null,
             string? userAgent = null,
             string? cookies = null)
         {
             _ttl = ttl ?? TimeSpan.FromSeconds(300);
+            _proxy = proxy;
             _userAgent = userAgent;
             _cookies = cookies;
         }
@@ -50,7 +53,7 @@ namespace TikTokLive.Helpers
             {
                 var profile = await Sigi.ScrapeProfileAsync(
                     key, ttwid, TimeSpan.FromSeconds(15),
-                    _userAgent, _cookies, ct).ConfigureAwait(false);
+                    _userAgent, _cookies, _proxy, ct).ConfigureAwait(false);
 
                 _entries[key] = new CacheEntry(profile);
                 return profile;
@@ -92,7 +95,7 @@ namespace TikTokLive.Helpers
             }
 
             string ttwid = await TtwidAuth.FetchTtwidAsync(
-                TimeSpan.FromSeconds(10), _userAgent, ct).ConfigureAwait(false);
+                TimeSpan.FromSeconds(10), _userAgent, _proxy, ct).ConfigureAwait(false);
 
             lock (_ttwidLock) { _ttwid = ttwid; }
             return ttwid;

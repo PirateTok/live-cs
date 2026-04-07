@@ -158,7 +158,7 @@ namespace TikTokLive
                 // Pick UA: user override or random from pool (fresh each attempt)
                 string ua = _userAgent ?? Http.UserAgent.RandomUa();
 
-                string ttwid = await TtwidAuth.FetchTtwidAsync(_timeout, ua, ct)
+                string ttwid = await TtwidAuth.FetchTtwidAsync(_timeout, ua, null, ct)
                     .ConfigureAwait(false);
 
                 string wssUrl = WssUrlBuilder.Build(_cdnHost, room.RoomId, tz, lang, reg);

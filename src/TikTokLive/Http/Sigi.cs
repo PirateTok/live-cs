@@ -38,13 +38,19 @@ namespace TikTokLive.Http
             TimeSpan timeout,
             string? userAgent = null,
             string? cookies = null,
+            string? proxy = null,
             CancellationToken ct = default)
         {
             string clean = username.Trim().TrimStart('@').ToLowerInvariant();
             string ua = userAgent ?? UserAgent.RandomUa();
             string cookieHeader = BuildCookieHeader(ttwid, cookies);
 
-            using (var client = new HttpClient { Timeout = timeout })
+            var handler = new HttpClientHandler();
+            if (!string.IsNullOrEmpty(proxy))
+                handler.Proxy = new System.Net.WebProxy(proxy);
+
+            using (handler)
+            using (var client = new HttpClient(handler) { Timeout = timeout })
             {
                 var request = new HttpRequestMessage(HttpMethod.Get,
                     $"https://www.tiktok.com/@{clean}");
