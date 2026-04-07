@@ -11,7 +11,7 @@
 
     <!-- NuGet package metadata -->
     <PackageId>PirateTok.Live</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Authors>Zmole Cristian</Authors>
     <Description>TikTok Live WebSocket connector — real-time chat, gifts, likes, and viewer events. No authentication required.</Description>
     <PackageLicenseExpression>0BSD</PackageLicenseExpression>
