@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using TikTokLive.Errors;
+using TikTokLive.Helpers;
 using TikTokLive.Http;
 
 class Program

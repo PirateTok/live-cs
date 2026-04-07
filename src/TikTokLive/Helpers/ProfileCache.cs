@@ -4,8 +4,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using TikTokLive.Auth;
 using TikTokLive.Errors;
+using TikTokLive.Http;
 
-namespace TikTokLive.Http
+namespace TikTokLive.Helpers
 {
     public class ProfileCache
     {
