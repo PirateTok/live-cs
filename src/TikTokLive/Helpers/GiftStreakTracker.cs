@@ -7,13 +7,13 @@ namespace TikTokLive.Helpers
 {
     public class GiftStreakEvent
     {
-        public ulong StreakId { get; init; }
-        public bool IsActive { get; init; }
-        public bool IsFinal { get; init; }
-        public int EventGiftCount { get; init; }
-        public int TotalGiftCount { get; init; }
-        public long EventDiamondCount { get; init; }
-        public long TotalDiamondCount { get; init; }
+        public ulong StreakId { get; set; }
+        public bool IsActive { get; set; }
+        public bool IsFinal { get; set; }
+        public int EventGiftCount { get; set; }
+        public int TotalGiftCount { get; set; }
+        public long EventDiamondCount { get; set; }
+        public long TotalDiamondCount { get; set; }
     }
 
     /// <summary>

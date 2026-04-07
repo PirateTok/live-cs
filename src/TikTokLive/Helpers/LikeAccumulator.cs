@@ -4,10 +4,10 @@ namespace TikTokLive.Helpers
 {
     public class LikeStats
     {
-        public int EventLikeCount { get; init; }
-        public int TotalLikeCount { get; init; }
-        public long AccumulatedCount { get; init; }
-        public bool WentBackwards { get; init; }
+        public int EventLikeCount { get; set; }
+        public int TotalLikeCount { get; set; }
+        public long AccumulatedCount { get; set; }
+        public bool WentBackwards { get; set; }
     }
 
     /// <summary>
