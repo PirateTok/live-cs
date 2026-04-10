@@ -170,7 +170,7 @@ namespace TikTokLive.Proto
         [ProtoMember(35)] public long FanTicketCount { get; set; }
         [ProtoMember(38)] public string UniqueId { get; set; } = "";
         [ProtoMember(39)] public bool WithCommerce { get; set; }
-        [ProtoMember(46)] public string SecUid { get; set; } = "";
+        [ProtoMember(46)] public string DisplayId { get; set; } = "";
         [ProtoMember(53)] public AuthenticationInfo? AuthenticationInfo { get; set; }
         [ProtoMember(63)] public SubscribeInfo? SubscribeInfo { get; set; }
         [ProtoMember(64)] public List<BadgeStruct> BadgeList { get; set; } = new();

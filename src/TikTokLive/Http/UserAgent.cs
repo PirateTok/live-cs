@@ -50,6 +50,9 @@ namespace TikTokLive.Http
         /// </summary>
         public static (string Language, string Region) SystemLocale()
         {
+            string lang = "en";
+            string region = "US";
+
             try
             {
                 string name = System.Globalization.CultureInfo.CurrentCulture.Name;
@@ -57,13 +60,22 @@ namespace TikTokLive.Http
                 {
                     string[] parts = name.Split('-');
                     if (parts.Length >= 2 && parts[0].Length >= 2)
-                        return (parts[0].ToLowerInvariant(), parts[1].ToUpperInvariant());
-                    if (parts.Length == 1 && parts[0].Length >= 2)
-                        return (parts[0].ToLowerInvariant(), "US");
+                    {
+                        lang = parts[0].ToLowerInvariant();
+                        region = parts[1].ToUpperInvariant();
+                    }
+                    else if (parts.Length == 1 && parts[0].Length >= 2)
+                    {
+                        lang = parts[0].ToLowerInvariant();
+                    }
                 }
             }
-            catch (Exception) { }
-            return ("en", "US");
+            catch (Exception ex)
+            {
+                _ = ex; // CultureInfo unavailable — fall through to defaults
+            }
+
+            return (lang, region);
         }
 
         public static string SystemLanguage() => SystemLocale().Language;
