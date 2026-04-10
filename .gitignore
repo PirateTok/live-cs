@@ -6,3 +6,4 @@ nupkg/
 .vs/
 *.user
 release.sh
+testdata/

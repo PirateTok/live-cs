@@ -77,21 +77,13 @@ namespace ReplayTests
             if (!string.IsNullOrEmpty(envDir) && Directory.Exists(envDir))
                 return envDir;
 
-            // Walk up from the binary dir to find the workspace root (contains live-cs/)
-            // then check sibling dirs for testdata.
+            // Walk up from the binary dir to find testdata/ in repo root
             string? dir = AppContext.BaseDirectory;
             for (int i = 0; i < 10 && dir != null; i++)
             {
-                // canonical: ../live-testdata (sibling of live-cs)
-                string testdata = Path.Combine(dir, "live-testdata");
+                string testdata = Path.Combine(dir, "testdata");
                 if (Directory.Exists(Path.Combine(testdata, "captures")))
                     return testdata;
-
-                // dev fallback: ../live-rs which has captures/
-                string devRs = Path.Combine(dir, "live-rs");
-                if (Directory.Exists(Path.Combine(devRs, "captures")))
-                    return devRs;
-
                 dir = Path.GetDirectoryName(dir);
             }
 
