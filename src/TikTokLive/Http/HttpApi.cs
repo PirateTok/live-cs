@@ -39,15 +39,19 @@ namespace TikTokLive.Http
         private const string TikTokUrlWebcast = "https://webcast.tiktok.com/webcast/";
 
         public static async Task<RoomIdResult> CheckOnlineAsync(
-            string username, TimeSpan timeout, CancellationToken ct = default)
+            string username, TimeSpan timeout, IWebProxy? proxy = null,
+            string? language = null, string? region = null,
+            CancellationToken ct = default)
         {
             string clean = username.Trim().TrimStart('@');
+            string lang = language ?? UserAgent.SystemLanguage();
+            string reg = region ?? UserAgent.SystemRegion();
             string url = TikTokUrlWeb +
                 "api-live/user/room?aid=1988&app_name=tiktok_web&device_platform=web_pc" +
-                "&app_language=en&browser_language=en-US&user_is_login=false" +
+                $"&app_language={lang}&browser_language={lang}-{reg}&user_is_login=false" +
                 $"&uniqueId={Uri.EscapeDataString(clean)}&sourceType=54&staleTime=600000";
 
-            using (var client = BuildClient(timeout, null))
+            using (var client = BuildClient(timeout, null, proxy))
             {
                 HttpResponseMessage response;
                 try
@@ -117,20 +121,24 @@ namespace TikTokLive.Http
         }
 
         public static async Task<RoomInfo> FetchRoomInfoAsync(
-            string roomId, TimeSpan timeout, string? cookies = null, CancellationToken ct = default)
+            string roomId, TimeSpan timeout, string? cookies = null,
+            IWebProxy? proxy = null, string? language = null,
+            string? region = null, CancellationToken ct = default)
         {
+            string lang = language ?? UserAgent.SystemLanguage();
+            string reg = region ?? UserAgent.SystemRegion();
             string tz = Uri.EscapeDataString(UserAgent.SystemTimezone());
             string url = TikTokUrlWebcast +
                 "room/info/?aid=1988&app_name=tiktok_web&device_platform=web_pc" +
-                "&app_language=en&browser_language=en-US&browser_name=Mozilla" +
+                $"&app_language={lang}&browser_language={lang}-{reg}&browser_name=Mozilla" +
                 "&browser_online=true&browser_platform=Win32" +
                 "&browser_version=5.0+(Windows+NT+10.0%3B+Win64%3B+x64)" +
                 "&cookie_enabled=true&focus_state=true&from_page=user" +
                 "&screen_height=1080&screen_width=1920" +
-                "&tz_name=" + tz + "&webcast_language=en" +
+                $"&tz_name={tz}&webcast_language={lang}" +
                 $"&room_id={roomId}";
 
-            using (var client = BuildClient(timeout, cookies))
+            using (var client = BuildClient(timeout, cookies, proxy))
             {
                 var response = await client.GetAsync(url, ct).ConfigureAwait(false);
                 string body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -220,9 +228,24 @@ namespace TikTokLive.Http
             return flv.GetString();
         }
 
-        private static HttpClient BuildClient(TimeSpan timeout, string? cookies)
+        private static HttpClient BuildClient(TimeSpan timeout, string? cookies,
+            IWebProxy? proxy = null)
         {
-            var client = new HttpClient { Timeout = timeout };
+            HttpClient client;
+            if (proxy != null)
+            {
+                var handler = new HttpClientHandler
+                {
+                    Proxy = proxy,
+                    UseProxy = true,
+                };
+                client = new HttpClient(handler) { Timeout = timeout };
+            }
+            else
+            {
+                client = new HttpClient { Timeout = timeout };
+            }
+
             client.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent.RandomUa());
             client.DefaultRequestHeaders.Referrer = new Uri("https://www.tiktok.com/");
             if (!string.IsNullOrEmpty(cookies))

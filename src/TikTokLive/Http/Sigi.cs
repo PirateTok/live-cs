@@ -1,4 +1,5 @@
 using System;
+using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
@@ -38,16 +39,24 @@ namespace TikTokLive.Http
             TimeSpan timeout,
             string? userAgent = null,
             string? cookies = null,
-            string? proxy = null,
+            IWebProxy? proxy = null,
+            string? language = null,
+            string? region = null,
             CancellationToken ct = default)
         {
             string clean = username.Trim().TrimStart('@').ToLowerInvariant();
             string ua = userAgent ?? UserAgent.RandomUa();
             string cookieHeader = BuildCookieHeader(ttwid, cookies);
+            string lang = language ?? UserAgent.SystemLanguage();
+            string reg = region ?? UserAgent.SystemRegion();
+            string acceptLang = $"{lang}-{reg},{lang};q=0.9";
 
             var handler = new HttpClientHandler();
-            if (!string.IsNullOrEmpty(proxy))
-                handler.Proxy = new System.Net.WebProxy(proxy);
+            if (proxy != null)
+            {
+                handler.Proxy = proxy;
+                handler.UseProxy = true;
+            }
 
             using (handler)
             using (var client = new HttpClient(handler) { Timeout = timeout })
@@ -56,7 +65,7 @@ namespace TikTokLive.Http
                     $"https://www.tiktok.com/@{clean}");
                 request.Headers.Add("User-Agent", ua);
                 request.Headers.Add("Cookie", cookieHeader);
-                request.Headers.Add("Accept-Language", "en-US,en;q=0.9");
+                request.Headers.Add("Accept-Language", acceptLang);
 
                 using (var resp = await client.SendAsync(request, ct).ConfigureAwait(false))
                 {

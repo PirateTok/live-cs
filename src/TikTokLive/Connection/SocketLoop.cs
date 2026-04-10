@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Net;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
@@ -20,6 +21,7 @@ namespace TikTokLive.Connection
         private readonly string _roomId;
         private readonly string _userAgent;
         private readonly string? _extraCookies;
+        private readonly IWebProxy? _proxy;
         private readonly TimeSpan _heartbeatInterval;
         private readonly TimeSpan _staleTimeout;
         private readonly Action<TikTokLiveEvent> _emit;
@@ -28,7 +30,7 @@ namespace TikTokLive.Connection
 
         public SocketLoop(
             string wssUrl, string ttwid, string roomId,
-            string userAgent, string? extraCookies,
+            string userAgent, string? extraCookies, IWebProxy? proxy,
             TimeSpan heartbeatInterval, TimeSpan staleTimeout,
             Action<TikTokLiveEvent> emit)
         {
@@ -37,6 +39,7 @@ namespace TikTokLive.Connection
             _roomId = roomId;
             _userAgent = userAgent;
             _extraCookies = extraCookies;
+            _proxy = proxy;
             _heartbeatInterval = heartbeatInterval;
             _staleTimeout = staleTimeout;
             _emit = emit;
@@ -45,6 +48,8 @@ namespace TikTokLive.Connection
         public async Task RunAsync(CancellationToken ct)
         {
             _ws = new ClientWebSocket();
+            if (_proxy != null)
+                _ws.Options.Proxy = _proxy;
             _ws.Options.SetRequestHeader("User-Agent", _userAgent);
 
             string cookie = string.IsNullOrEmpty(_extraCookies)

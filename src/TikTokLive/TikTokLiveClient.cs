@@ -135,36 +135,42 @@ namespace TikTokLive
         }
 
         public static Task<RoomIdResult> CheckOnlineAsync(
-            string username, TimeSpan timeout, CancellationToken ct = default)
-            => HttpApi.CheckOnlineAsync(username, timeout, ct);
+            string username, TimeSpan timeout, IWebProxy? proxy = null,
+            string? language = null, string? region = null,
+            CancellationToken ct = default)
+            => HttpApi.CheckOnlineAsync(username, timeout, proxy, language, region, ct);
 
         public static Task<RoomInfo> FetchRoomInfoAsync(
-            string roomId, TimeSpan timeout, string? cookies = null, CancellationToken ct = default)
-            => HttpApi.FetchRoomInfoAsync(roomId, timeout, cookies, ct);
+            string roomId, TimeSpan timeout, string? cookies = null,
+            IWebProxy? proxy = null, string? language = null,
+            string? region = null, CancellationToken ct = default)
+            => HttpApi.FetchRoomInfoAsync(roomId, timeout, cookies, proxy, language, region, ct);
 
         public async Task RunAsync(CancellationToken ct = default)
         {
-            RoomIdResult room = await HttpApi.CheckOnlineAsync(_username, _timeout, ct)
+            string lang = _language ?? Http.UserAgent.SystemLanguage();
+            string reg = _region ?? Http.UserAgent.SystemRegion();
+
+            RoomIdResult room = await HttpApi.CheckOnlineAsync(
+                _username, _timeout, _proxy, lang, reg, ct)
                 .ConfigureAwait(false);
 
             EmitEvent(TikTokLiveEvent.Connected(room.RoomId));
 
             string tz = Http.UserAgent.SystemTimezone();
-            string lang = _language ?? Http.UserAgent.SystemLanguage();
-            string reg = _region ?? Http.UserAgent.SystemRegion();
             int attempt = 0;
             while (!ct.IsCancellationRequested)
             {
                 // Pick UA: user override or random from pool (fresh each attempt)
                 string ua = _userAgent ?? Http.UserAgent.RandomUa();
 
-                string ttwid = await TtwidAuth.FetchTtwidAsync(_timeout, ua, null, ct)
+                string ttwid = await TtwidAuth.FetchTtwidAsync(_timeout, ua, _proxy, ct)
                     .ConfigureAwait(false);
 
                 string wssUrl = WssUrlBuilder.Build(_cdnHost, room.RoomId, tz, lang, reg);
 
                 var loop = new SocketLoop(wssUrl, ttwid, room.RoomId,
-                    ua, _cookies,
+                    ua, _cookies, _proxy,
                     _heartbeatInterval, _staleTimeout, EmitEvent);
 
                 bool isDeviceBlocked = false;

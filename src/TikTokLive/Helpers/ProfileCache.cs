@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using TikTokLive.Auth;
@@ -11,7 +12,7 @@ namespace TikTokLive.Helpers
     public class ProfileCache
     {
         private readonly TimeSpan _ttl;
-        private readonly string? _proxy;
+        private readonly IWebProxy? _proxy;
         private readonly string? _userAgent;
         private readonly string? _cookies;
         private readonly ConcurrentDictionary<string, CacheEntry> _entries = new();
@@ -32,7 +33,7 @@ namespace TikTokLive.Helpers
             string? cookies = null)
         {
             _ttl = ttl ?? TimeSpan.FromSeconds(300);
-            _proxy = proxy;
+            _proxy = string.IsNullOrEmpty(proxy) ? null : new WebProxy(proxy);
             _userAgent = userAgent;
             _cookies = cookies;
         }
@@ -53,7 +54,7 @@ namespace TikTokLive.Helpers
             {
                 var profile = await Sigi.ScrapeProfileAsync(
                     key, ttwid, TimeSpan.FromSeconds(15),
-                    _userAgent, _cookies, _proxy, ct).ConfigureAwait(false);
+                    _userAgent, _cookies, _proxy, ct: ct).ConfigureAwait(false);
 
                 _entries[key] = new CacheEntry(profile);
                 return profile;
