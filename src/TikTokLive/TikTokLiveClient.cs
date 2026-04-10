@@ -102,7 +102,7 @@ namespace TikTokLive
         /// reconnect attempt. This is recommended for reducing DEVICE_BLOCKED risk.
         /// Only set this if you have a specific UA you want to use.
         /// </summary>
-        public TikTokLiveClient SetUserAgent(string ua)
+        public TikTokLiveClient UserAgent(string ua)
         {
             _userAgent = ua;
             return this;
@@ -116,7 +116,7 @@ namespace TikTokLive
         /// <see cref="FetchRoomInfoAsync"/> instead.
         /// Format: "sessionid=xxx; sid_tt=xxx" (TikTok session cookies from browser DevTools)
         /// </summary>
-        public TikTokLiveClient SetCookies(string cookies)
+        public TikTokLiveClient Cookies(string cookies)
         {
             _cookies = cookies;
             return this;
