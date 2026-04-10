@@ -24,6 +24,7 @@ namespace TikTokLive
         private string? _cookies;
         private string? _language;
         private string? _region;
+        private bool _compress = true;
 
         // lifecycle
         public event Action<string>? OnConnected;
@@ -134,6 +135,12 @@ namespace TikTokLive
             return this;
         }
 
+        public TikTokLiveClient Compress(bool enabled)
+        {
+            _compress = enabled;
+            return this;
+        }
+
         public static Task<RoomIdResult> CheckOnlineAsync(
             string username, TimeSpan timeout, IWebProxy? proxy = null,
             string? language = null, string? region = null,
@@ -167,7 +174,7 @@ namespace TikTokLive
                 string ttwid = await TtwidAuth.FetchTtwidAsync(_timeout, ua, _proxy, ct)
                     .ConfigureAwait(false);
 
-                string wssUrl = WssUrlBuilder.Build(_cdnHost, room.RoomId, tz, lang, reg);
+                string wssUrl = WssUrlBuilder.Build(_cdnHost, room.RoomId, tz, lang, reg, _compress);
 
                 var loop = new SocketLoop(wssUrl, ttwid, room.RoomId,
                     ua, _cookies, _proxy,

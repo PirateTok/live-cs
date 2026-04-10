@@ -12,13 +12,13 @@ var client = new TikTokLiveClient("username_here");
 
 // Subscribe to events — each carries fully decoded protobuf data
 client.OnChat += msg =>
-    Console.WriteLine($"[chat] {msg.User?.Nickname}: {msg.Content}");
+    Console.WriteLine($"[chat] {msg.User?.Nickname}: {msg.Comment}");
 
 client.OnGift += msg =>
-    Console.WriteLine($"[gift] {msg.User?.Nickname} sent {msg.Gift?.Name} x{msg.RepeatCount} ({msg.Gift?.DiamondCount} diamonds)");
+    Console.WriteLine($"[gift] {msg.User?.Nickname} sent {msg.GiftDetails?.GiftName} x{msg.RepeatCount} ({msg.GiftDetails?.DiamondCount} diamonds)");
 
 client.OnLike += msg =>
-    Console.WriteLine($"[like] {msg.User?.Nickname} ({msg.TotalLikes} total)");
+    Console.WriteLine($"[like] {msg.User?.Nickname} ({msg.TotalLikeCount} total)");
 
 // Blocks until disconnected — handles heartbeat and reconnection automatically
 await client.RunAsync();
@@ -60,11 +60,30 @@ Targets `netstandard2.0` — works with .NET 6+, .NET Framework 4.6.1+, Unity 20
 
 ```csharp
 var client = new TikTokLiveClient("username_here")
-    .CdnEU()
+    .CdnEu()
     .Timeout(TimeSpan.FromSeconds(15))
     .MaxRetries(10)
     .StaleTimeout(TimeSpan.FromSeconds(90));
 ```
+
+### Builder methods
+
+| Method | Default | Description |
+|:-------|:--------|:------------|
+| `.Cdn(host)` | `webcast-ws.tiktok.com` | Set custom CDN hostname |
+| `.CdnEu()` | — | Shorthand for EU CDN (`webcast-ws.eu.tiktok.com`) |
+| `.CdnUs()` | — | Shorthand for US CDN (`webcast-ws.us.tiktok.com`) |
+| `.Timeout(TimeSpan)` | 10s | HTTP request timeout for ttwid fetch, online check, room info |
+| `.HeartbeatInterval(TimeSpan)` | 10s | Interval between WSS heartbeat frames |
+| `.MaxRetries(int)` | 5 | Maximum reconnection attempts before giving up |
+| `.StaleTimeout(TimeSpan)` | 60s | Close and reconnect if no data arrives within this window |
+| `.Proxy(string)` | none | HTTP/HTTPS/SOCKS5 proxy URL — applies to all HTTP requests and WSS |
+| `.Proxy(IWebProxy)` | none | Same, but accepts a `System.Net.IWebProxy` instance directly |
+| `.UserAgent(string)` | random | Override the random UA pool with a fixed user agent |
+| `.Cookies(string)` | none | Append session cookies alongside ttwid in WSS cookie header (`"sessionid=xxx; sid_tt=xxx"`) |
+| `.Language(string)` | system | Override language sent in WSS URL params (auto-detected from system locale) |
+| `.Region(string)` | system | Override region sent in WSS URL params (auto-detected from system locale) |
+| `.Compress(bool)` | `true` | Disable gzip compression for WSS payloads (trades bandwidth for CPU) |
 
 ## Room info (optional, separate call)
 
@@ -92,10 +111,12 @@ var info = await TikTokLiveClient.FetchRoomInfoAsync(
 ## Examples
 
 ```bash
-dotnet run --project examples/BasicChat -- <username>       # connect + print chat events
-dotnet run --project examples/OnlineCheck -- <username>     # check if user is live
-dotnet run --project examples/StreamInfo -- <username>      # fetch room metadata + stream URLs
-dotnet run --project examples/GiftTracker -- <username>     # track gifts with diamond totals
+dotnet run --project examples/BasicChat -- <username>        # connect + print chat events
+dotnet run --project examples/OnlineCheck -- <username>      # check if user is live
+dotnet run --project examples/StreamInfo -- <username>       # fetch room metadata + stream URLs
+dotnet run --project examples/GiftTracker -- <username>      # track gifts with diamond totals
+dotnet run --project examples/GiftStreak -- <username>       # track gift streaks with per-event deltas
+dotnet run --project examples/ProfileLookup -- <username>    # fetch user profile via SIGI scrape
 ```
 
 ## Replay testing
@@ -111,8 +132,7 @@ Tests skip gracefully if testdata is not found. You can also set `PIRATETOK_TEST
 
 ## Known gaps
 
-- `Proxy(...)` exists on the client surface, but proxy transport plumbing is not wired into `HttpClient` or `ClientWebSocket` yet.
-- Explicit `DEVICE_BLOCKED` handshake handling is not implemented yet.
+None currently tracked.
 
 ## License
 

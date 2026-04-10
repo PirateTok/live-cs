@@ -5,7 +5,7 @@ namespace TikTokLive.Connection
     internal static class WssUrlBuilder
     {
         public static string Build(string cdnHost, string roomId, string timezone,
-            string language = "en", string region = "US")
+            string language = "en", string region = "US", bool compress = true)
         {
             double lastRtt = 100.0 + new Random().NextDouble() * 100.0;
             string rttStr = lastRtt.ToString("F3");
@@ -27,7 +27,7 @@ namespace TikTokLive.Connection
                 "app_name=tiktok_web",
                 "sup_ws_ds_opt=1",
                 "update_version_code=2.0.0",
-                "compress=gzip",
+                "compress=" + (compress ? "gzip" : ""),
                 "webcast_language=" + language,
                 "ws_direct=1",
                 "aid=1988",

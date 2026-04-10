@@ -35,6 +35,17 @@ namespace ReplayTests
         [Fact]
         public void ReplayFox4newsdallasfortworth() => RunCaptureTest("fox4newsdallasfortworth");
 
+        // --- raw (uncompressed) capture variants ---
+
+        [Fact]
+        public void ReplayCalvinterest6Raw() => RunRawCaptureTest("calvinterest6");
+
+        [Fact]
+        public void ReplayHappyhappygaltvRaw() => RunRawCaptureTest("happyhappygaltv");
+
+        [Fact]
+        public void ReplayFox4newsdallasfortworthRaw() => RunRawCaptureTest("fox4newsdallasfortworth");
+
         // --- test runner ---
 
         private void RunCaptureTest(string name)
@@ -67,6 +78,38 @@ namespace ReplayTests
             List<byte[]> frames = ReadCapture(capPath);
             ReplayResult result = Replay(frames);
             AssertReplay(name, result, manifest);
+        }
+
+        private void RunRawCaptureTest(string name)
+        {
+            string? testdata = FindTestdata();
+            if (testdata == null)
+            {
+                _output.WriteLine($"SKIP {name}_raw: no testdata (set PIRATETOK_TESTDATA or clone live-testdata)");
+                return;
+            }
+
+            string capPath = Path.Combine(testdata, "captures", $"{name}_raw.bin");
+            string manPath = ManifestPath(testdata, name);
+
+            if (!File.Exists(capPath))
+            {
+                _output.WriteLine($"SKIP {name}_raw: capture not found at {capPath}");
+                return;
+            }
+            if (!File.Exists(manPath))
+            {
+                _output.WriteLine($"SKIP {name}_raw: manifest not found at {manPath}");
+                return;
+            }
+
+            string manifestJson = File.ReadAllText(manPath);
+            Manifest manifest = JsonSerializer.Deserialize<Manifest>(manifestJson)
+                ?? throw new InvalidOperationException("manifest deserialized to null");
+
+            List<byte[]> frames = ReadCapture(capPath);
+            ReplayResult result = Replay(frames);
+            AssertReplay($"{name}_raw", result, manifest);
         }
 
         // --- test data location ---
