@@ -10,7 +10,8 @@ namespace TikTokLive.Proto
         [ProtoMember(2)] public string Cursor { get; set; } = "";
         [ProtoMember(3)] public long FetchInterval { get; set; }
         [ProtoMember(4)] public long Now { get; set; }
-        [ProtoMember(5)] public string InternalExt { get; set; } = "";
+        // opaque bytes, echoed verbatim in the ack — not text
+        [ProtoMember(5)] public byte[] InternalExt { get; set; } = System.Array.Empty<byte>();
         [ProtoMember(6)] public int FetchType { get; set; }
         [ProtoMember(7)] public Dictionary<string, string> RouteParamsMap { get; set; } = new Dictionary<string, string>();
         [ProtoMember(8)] public int HeartBeatDuration { get; set; }

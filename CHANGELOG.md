@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.1
+
+Fixes (found by new offline fake-server / fake-proxy tests):
+- `internal_ext` was decoded as a UTF-8 string: non-UTF-8 bytes broke frame processing, so the ack never
+  went out and the session went silent. `WebcastResponse.InternalExt` is now `byte[]`, echoed verbatim.
+- One undecodable frame no longer ends the session; socket errors mid-session now surface as a failed attempt
+  instead of being swallowed by `Task.WhenAny`; the socket is disposed after every session.
+- The client now completes the WebSocket close handshake when the server closes.
+- `.Proxy(string url)` dropped `user:pass@` credentials (`new WebProxy(url)` ignores userinfo).
+  New `ProxyUrl.Parse` keeps them for HTTP CONNECT and SOCKS5.
+- WSS errors other than `TikTokLiveException` (`WebSocketException`, `IOException`) no longer escape `RunAsync`.
+
+Tests: fake CONNECT + SOCKS5 proxies (ttwid, API, WSS, credentials), fake webcast WS server
+(heartbeat, enter_room, ack log_id + binary internal_ext, UA / cookies / locale / compress / heartbeat_duration
+on the wire), client-level reconnect loop (Reconnecting×N → Disconnected once, rotation, cancel).
+
 ## 0.2.0
 
 Breaking:

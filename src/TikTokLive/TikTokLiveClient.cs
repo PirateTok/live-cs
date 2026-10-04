@@ -1,7 +1,9 @@
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
 using TikTokLive.Auth;
@@ -95,7 +97,7 @@ namespace TikTokLive
 
         public TikTokLiveClient Proxy(string url)
         {
-            _proxy = new WebProxy(url);
+            _proxy = ProxyUrl.Parse(url);
             return this;
         }
 
@@ -174,75 +176,53 @@ namespace TikTokLive
             EmitEvent(TikTokLiveEvent.Connected(room.RoomId));
 
             string tz = Http.UserAgent.SystemTimezone();
-            var budget = new ReconnectBudget(_maxRetries);
-            // ttwid + UA are fetched once and reused across reconnects; rotated only
-            // on DEVICE_BLOCKED, a ttwid failure, or a session that died young.
-            string? ttwid = null;
-            string ua = "";
-            while (!ct.IsCancellationRequested)
+            await ReconnectLoop.RunAsync(
+                _maxRetries,
+                FreshSessionAsync,
+                (session, token) => RunSessionAsync(session, room.RoomId, tz, lang, reg, token),
+                Task.Delay,
+                EmitEvent,
+                ct).ConfigureAwait(false);
+        }
+
+        /// <summary>Returns null when the ttwid fetch failed — a failed attempt, not an abort.</summary>
+        private async Task<LiveSession?> FreshSessionAsync(CancellationToken ct)
+        {
+            string ua = _userAgent ?? Http.UserAgent.RandomUa();
+            try
             {
-                SessionExit exit;
-                TimeSpan lived = TimeSpan.Zero;
-                if (ttwid == null)
-                {
-                    ua = _userAgent ?? Http.UserAgent.RandomUa();
-                    try
-                    {
-                        ttwid = await TtwidAuth.FetchTtwidAsync(_timeout, ua, _proxy, ct)
-                            .ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException) when (ct.IsCancellationRequested) { break; }
-                    catch (Exception ex) when (ex is TikTokLiveException || ex is HttpRequestException
-                                               || ex is OperationCanceledException)
-                    {
-                        Trace.TraceWarning($"ttwid acquisition failed: {ex.Message}");
-                    }
-                }
-
-                if (ttwid == null)
-                {
-                    exit = SessionExit.NoTtwid;
-                }
-                else
-                {
-                    string wssUrl = WssUrlBuilder.Build(_cdnHost, room.RoomId, tz, lang, reg,
-                        _compress, _heartbeatInterval);
-                    var loop = new SocketLoop(wssUrl, ttwid, room.RoomId,
-                        ua, _cookies, _proxy,
-                        _heartbeatInterval, _staleTimeout, EmitEvent);
-
-                    var started = Stopwatch.StartNew();
-                    try
-                    {
-                        await loop.RunAsync(ct).ConfigureAwait(false);
-                        exit = SessionExit.Closed;
-                    }
-                    catch (OperationCanceledException) when (ct.IsCancellationRequested) { break; }
-                    catch (DeviceBlockedException) { exit = SessionExit.DeviceBlocked; }
-                    catch (TikTokLiveException ex)
-                    {
-                        Trace.TraceWarning($"websocket error: {ex.Message}");
-                        exit = SessionExit.Errored;
-                    }
-                    lived = started.Elapsed;
-                }
-
-                if (ct.IsCancellationRequested) break;
-
-                Judgement judgement = ReconnectBudget.Judge(exit, lived);
-                if (judgement.Rotate)
-                    ttwid = null;
-
-                Verdict verdict = budget.Record(judgement.End);
-                if (verdict.GiveUp) break;
-
-                int delay = (int)verdict.Delay.TotalSeconds;
-                EmitEvent(TikTokLiveEvent.Reconnecting(verdict.Attempt, _maxRetries, delay));
-                try { await Task.Delay(verdict.Delay, ct).ConfigureAwait(false); }
-                catch (OperationCanceledException) when (ct.IsCancellationRequested) { break; }
+                string ttwid = await TtwidAuth.FetchTtwidAsync(_timeout, ua, _proxy, ct).ConfigureAwait(false);
+                return new LiveSession(ttwid, ua);
             }
+            catch (Exception ex) when (!ct.IsCancellationRequested && (ex is TikTokLiveException
+                                       || ex is HttpRequestException || ex is OperationCanceledException))
+            {
+                Trace.TraceWarning($"ttwid acquisition failed: {ex.Message}");
+                return null;
+            }
+        }
 
-            EmitEvent(TikTokLiveEvent.Disconnected());
+        private async Task<SessionExit> RunSessionAsync(LiveSession session, string roomId, string tz,
+            string lang, string reg, CancellationToken ct)
+        {
+            string wssUrl = WssUrlBuilder.Build(_cdnHost, roomId, tz, lang, reg, _compress, _heartbeatInterval);
+            var loop = new SocketLoop(wssUrl, session.Ttwid, roomId, session.UserAgent, _cookies, _proxy,
+                _heartbeatInterval, _staleTimeout, EmitEvent);
+            try
+            {
+                await loop.RunAsync(ct).ConfigureAwait(false);
+                return SessionExit.Closed;
+            }
+            catch (DeviceBlockedException)
+            {
+                return SessionExit.DeviceBlocked;
+            }
+            catch (Exception ex) when (!ct.IsCancellationRequested && (ex is TikTokLiveException
+                                       || ex is WebSocketException || ex is IOException))
+            {
+                Trace.TraceWarning($"websocket error: {ex.Message}");
+                return SessionExit.Errored;
+            }
         }
 
         private void EmitEvent(TikTokLiveEvent evt)

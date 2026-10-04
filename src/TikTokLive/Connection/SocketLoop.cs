@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Net;
@@ -72,19 +73,24 @@ namespace TikTokLive.Connection
                     $"websocket handshake failed (possible DEVICE_BLOCKED): {ex.Message}", ex);
             }
 
-            byte[] hb = BuildHeartbeat();
-            await SendAsync(hb, ct).ConfigureAwait(false);
-
-            byte[] enter = BuildEnterRoom();
-            await SendAsync(enter, ct).ConfigureAwait(false);
-
-            using (var heartbeatCts = CancellationTokenSource.CreateLinkedTokenSource(ct))
+            try
             {
-                Task heartbeatTask = RunHeartbeatAsync(heartbeatCts.Token);
-                Task receiveTask = RunReceiveAsync(ct);
+                await SendAsync(BuildHeartbeat(), ct).ConfigureAwait(false);
+                await SendAsync(BuildEnterRoom(), ct).ConfigureAwait(false);
 
-                await Task.WhenAny(heartbeatTask, receiveTask).ConfigureAwait(false);
-                heartbeatCts.Cancel();
+                using (var heartbeatCts = CancellationTokenSource.CreateLinkedTokenSource(ct))
+                {
+                    Task heartbeatTask = RunHeartbeatAsync(heartbeatCts.Token);
+                    Task receiveTask = RunReceiveAsync(ct);
+
+                    Task finished = await Task.WhenAny(heartbeatTask, receiveTask).ConfigureAwait(false);
+                    heartbeatCts.Cancel();
+                    await finished.ConfigureAwait(false); // surface socket errors instead of dropping them
+                }
+            }
+            finally
+            {
+                _ws.Dispose();
             }
             // No Disconnected emit — client owns lifecycle events
         }
@@ -121,13 +127,26 @@ namespace TikTokLive.Connection
                 catch (WebSocketException) { break; }
 
                 if (result.MessageType == WebSocketMessageType.Close)
+                {
+                    // complete the close handshake instead of dropping the socket
+                    await _ws.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", ct).ConfigureAwait(false);
                     break;
+                }
 
                 if (result.MessageType != WebSocketMessageType.Binary)
                     continue;
 
                 byte[] frameData = await CollectMessageAsync(recvBuf, result, ct).ConfigureAwait(false);
-                await ProcessFrameAsync(frameData, ct).ConfigureAwait(false);
+                try
+                {
+                    await ProcessFrameAsync(frameData, ct).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (ex is ProtoException || ex is InvalidDataException
+                                           || ex is EndOfStreamException || ex is InvalidOperationException)
+                {
+                    // one undecodable frame must not end the session
+                    Trace.TraceWarning($"frame decode error: {ex.Message}");
+                }
             }
         }
 
@@ -174,9 +193,9 @@ namespace TikTokLive.Connection
                         response = Serializer.Deserialize<WebcastResponse>(ms);
                     }
 
-                    if (response.NeedsAck && !string.IsNullOrEmpty(response.InternalExt))
+                    if (response.NeedsAck && response.InternalExt.Length > 0)
                     {
-                        byte[] ack = BuildAck(frame.LogId, Encoding.UTF8.GetBytes(response.InternalExt));
+                        byte[] ack = BuildAck(frame.LogId, response.InternalExt);
                         await SendAsync(ack, ct).ConfigureAwait(false);
                     }
 
