@@ -1,8 +1,8 @@
 // Replay test -- reads a capture file, processes it through the full decode
 // pipeline, and asserts every value matches the manifest JSON.
 //
-// Skips if testdata is not available. Set PIRATETOK_TESTDATA env var or
-// place captures in ../live-testdata/.
+// Fails if testdata is not available. Set PIRATETOK_TESTDATA env var or
+// place captures/ + manifests/ in the repo's testdata/.
 
 using System;
 using System.Collections.Generic;
@@ -49,68 +49,32 @@ namespace ReplayTests
         // --- test runner ---
 
         private void RunCaptureTest(string name)
-        {
-            string? testdata = FindTestdata();
-            if (testdata == null)
-            {
-                _output.WriteLine($"SKIP {name}: no testdata (set PIRATETOK_TESTDATA or clone live-testdata)");
-                return;
-            }
-
-            string capPath = CapturePath(testdata, name);
-            string manPath = ManifestPath(testdata, name);
-
-            if (!File.Exists(capPath))
-            {
-                _output.WriteLine($"SKIP {name}: capture not found at {capPath}");
-                return;
-            }
-            if (!File.Exists(manPath))
-            {
-                _output.WriteLine($"SKIP {name}: manifest not found at {manPath}");
-                return;
-            }
-
-            string manifestJson = File.ReadAllText(manPath);
-            Manifest manifest = JsonSerializer.Deserialize<Manifest>(manifestJson)
-                ?? throw new InvalidOperationException("manifest deserialized to null");
-
-            List<byte[]> frames = ReadCapture(capPath);
-            ReplayResult result = Replay(frames);
-            AssertReplay(name, result, manifest);
-        }
+            => RunCapture(name, CapturePath(RequireTestdata(), name));
 
         private void RunRawCaptureTest(string name)
+            => RunCapture($"{name}_raw", Path.Combine(RequireTestdata(), "captures", $"{name}_raw.bin"), name);
+
+        // Missing data is a failure, never a silent pass.
+        private void RunCapture(string label, string capPath, string? manifestName = null)
         {
-            string? testdata = FindTestdata();
-            if (testdata == null)
-            {
-                _output.WriteLine($"SKIP {name}_raw: no testdata (set PIRATETOK_TESTDATA or clone live-testdata)");
-                return;
-            }
-
-            string capPath = Path.Combine(testdata, "captures", $"{name}_raw.bin");
-            string manPath = ManifestPath(testdata, name);
-
-            if (!File.Exists(capPath))
-            {
-                _output.WriteLine($"SKIP {name}_raw: capture not found at {capPath}");
-                return;
-            }
-            if (!File.Exists(manPath))
-            {
-                _output.WriteLine($"SKIP {name}_raw: manifest not found at {manPath}");
-                return;
-            }
+            string manPath = ManifestPath(RequireTestdata(), manifestName ?? label);
+            Assert.True(File.Exists(capPath), $"{label}: capture not found at {capPath}");
+            Assert.True(File.Exists(manPath), $"{label}: manifest not found at {manPath}");
 
             string manifestJson = File.ReadAllText(manPath);
             Manifest manifest = JsonSerializer.Deserialize<Manifest>(manifestJson)
                 ?? throw new InvalidOperationException("manifest deserialized to null");
 
             List<byte[]> frames = ReadCapture(capPath);
+            Assert.True(frames.Count > 0, $"{label}: capture has no frames");
             ReplayResult result = Replay(frames);
-            AssertReplay($"{name}_raw", result, manifest);
+            _output.WriteLine($"{label}: {frames.Count} frames, {result.MessageCount} messages, {result.EventCount} events from {capPath}");
+            AssertReplay(label, result, manifest);
         }
+
+        private static string RequireTestdata()
+            => FindTestdata() ?? throw new InvalidOperationException(
+                "no testdata: set PIRATETOK_TESTDATA or place captures/ + manifests/ in testdata/");
 
         // --- test data location ---
 
@@ -278,7 +242,7 @@ namespace ReplayTests
                         }
                         catch (Exception)
                         {
-                            // decode failure for like — should not happen
+                            r.DecodeFailures++;
                         }
                     }
 
@@ -317,7 +281,7 @@ namespace ReplayTests
                         }
                         catch (Exception)
                         {
-                            // decode failure for gift — should not happen
+                            r.DecodeFailures++;
                         }
                     }
                 }

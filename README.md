@@ -20,7 +20,8 @@ client.OnGift += msg =>
 client.OnLike += msg =>
     Console.WriteLine($"[like] {msg.User?.Nickname} ({msg.TotalLikeCount} total)");
 
-// Blocks until disconnected — handles heartbeat and reconnection automatically
+// Runs the whole session: completes only after the final disconnect (max retries
+// exhausted or cancellation). OnConnected fires as soon as the room is resolved.
 await client.RunAsync();
 ```
 
@@ -74,8 +75,8 @@ var client = new TikTokLiveClient("username_here")
 | `.CdnEu()` | — | Shorthand for EU CDN (`webcast-ws.eu.tiktok.com`) |
 | `.CdnUs()` | — | Shorthand for US CDN (`webcast-ws.us.tiktok.com`) |
 | `.Timeout(TimeSpan)` | 10s | HTTP request timeout for ttwid fetch, online check, room info |
-| `.HeartbeatInterval(TimeSpan)` | 10s | Interval between WSS heartbeat frames |
-| `.MaxRetries(int)` | 5 | Maximum reconnection attempts before giving up |
+| `.HeartbeatInterval(TimeSpan)` | 10s | Interval between WSS heartbeat frames (also sent as `heartbeat_duration`) |
+| `.MaxRetries(int)` | 5 | Maximum consecutive failed attempts before giving up (reset after a 30s healthy session) |
 | `.StaleTimeout(TimeSpan)` | 60s | Close and reconnect if no data arrives within this window |
 | `.Proxy(string)` | none | HTTP/HTTPS/SOCKS5 proxy URL — applies to all HTTP requests and WSS |
 | `.Proxy(IWebProxy)` | none | Same, but accepts a `System.Net.IWebProxy` instance directly |
@@ -100,13 +101,38 @@ var info = await TikTokLiveClient.FetchRoomInfoAsync(
     cookies: "sessionid=abc; sid_tt=abc");
 ```
 
+## Viewers
+
+The top-viewers box (usually top 3) rides on every `RoomUserSeq` event — no cookies needed:
+
+```csharp
+client.OnRoomUserSeq += msg =>
+{
+    foreach (var c in msg.TopViewers())
+        Console.WriteLine($"#{c.Rank} {c.User?.Nickname} ({c.Score})");
+};
+```
+
+The full audience roster is a separate call. TikTok gates it behind a login, so session cookies are
+**required for this call only** — without them it throws `SessionRequiredException`:
+
+```csharp
+var room = await TikTokLiveClient.CheckOnlineAsync("username_here", TimeSpan.FromSeconds(10));
+var audience = await TikTokLiveClient.FetchRoomAudienceAsync(
+    room.RoomId, room.AnchorId, TimeSpan.FromSeconds(10),
+    cookies: "sessionid=abc; sid_tt=abc");
+// audience.Total, audience.Anonymous, audience.Viewers (rank, score, username, follower count, ...)
+```
+
+Pass `null` as the anchor ID to resolve it from room info (one extra request).
+
 ## How it works
 
 1. Resolves username to room ID via TikTok JSON API
-2. Authenticates and opens a direct WSS connection
+2. Fetches a ttwid cookie (retried up to 8× — TikTok only sets it intermittently) and opens a direct WSS connection
 3. Protobuf heartbeats every 10s
 4. Decodes protobuf stream into typed C# objects via protobuf-net
-5. Auto-reconnects on stale/dropped connections with fresh credentials
+5. Auto-reconnects on stale/dropped connections, reusing ttwid + UA; both rotate only on DEVICE_BLOCKED or a connection that died within 30s
 
 ## Examples
 
@@ -117,6 +143,7 @@ dotnet run --project examples/StreamInfo -- <username>       # fetch room metada
 dotnet run --project examples/GiftTracker -- <username>      # track gifts with diamond totals
 dotnet run --project examples/GiftStreak -- <username>       # track gift streaks with per-event deltas
 dotnet run --project examples/ProfileLookup -- <username>    # fetch user profile via SIGI scrape
+dotnet run --project examples/Audience -- <username> "sessionid=...; sid_tt=..."  # full viewer roster (login required)
 ```
 
 ## Replay testing
@@ -128,7 +155,8 @@ git clone https://github.com/PirateTok/live-testdata testdata
 dotnet test
 ```
 
-Tests skip gracefully if testdata is not found. You can also set `PIRATETOK_TESTDATA` to point to a custom location.
+Replay tests fail if testdata is not found — they never pass on missing data. Set `PIRATETOK_TESTDATA` to point to a custom location.
+Offline unit tests (ttwid retry, reconnect budget, top viewers, audience parsing) live in `tests/UnitTests` and need no network.
 
 ## Known gaps
 

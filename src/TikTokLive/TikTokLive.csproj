@@ -11,11 +11,11 @@
 
     <!-- NuGet package metadata -->
     <PackageId>PirateTok.Live</PackageId>
-    <Version>0.1.6</Version>
+    <Version>0.2.0</Version>
     <Authors>Zmole Cristian</Authors>
     <Description>TikTok Live WebSocket connector — real-time chat, gifts, likes, and viewer events. No authentication required.</Description>
     <PackageLicenseExpression>0BSD</PackageLicenseExpression>
-    <PackageProjectUrl>https://piratetok.boats</PackageProjectUrl>
+    <PackageProjectUrl>https://piratetok.rosint.org</PackageProjectUrl>
     <RepositoryUrl>https://github.com/PirateTok/live-cs</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>tiktok;tiktok-live;live;stream;chat;gifts;websocket;protobuf;realtime;piratetok;events</PackageTags>
@@ -28,6 +28,7 @@
   <ItemGroup>
     <None Include="../../README.md" Pack="true" PackagePath="/" />
     <InternalsVisibleTo Include="ReplayTests" />
+    <InternalsVisibleTo Include="UnitTests" />
   </ItemGroup>
 
   <ItemGroup>

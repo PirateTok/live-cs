@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/examples/">
+    <Project Path="examples/Audience/Audience.csproj" />
     <Project Path="examples/BasicChat/BasicChat.csproj" />
     <Project Path="examples/GiftTracker/GiftTracker.csproj" />
     <Project Path="examples/OnlineCheck/OnlineCheck.csproj" />
@@ -10,6 +11,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ReplayTests/ReplayTests.csproj" />
+    <Project Path="tests/UnitTests/UnitTests.csproj" />
     <Project Path="tests/IntegrationTests/IntegrationTests.csproj" />
   </Folder>
 </Solution>

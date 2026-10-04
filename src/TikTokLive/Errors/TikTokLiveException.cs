@@ -42,6 +42,16 @@ namespace TikTokLive.Errors
             : base(message, inner) { }
     }
 
+    /// <summary>
+    /// The endpoint needs a logged-in session. Pass session cookies
+    /// ("sessionid=xxx; sid_tt=xxx") to the call that threw this.
+    /// </summary>
+    public class SessionRequiredException : TikTokLiveException
+    {
+        public SessionRequiredException(string message)
+            : base($"session required: {message}") { }
+    }
+
     public class TikTokApiException : TikTokLiveException
     {
         public long StatusCode { get; }

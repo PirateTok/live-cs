@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using ProtoBuf;
 
 namespace TikTokLive.Proto
@@ -81,9 +82,9 @@ namespace TikTokLive.Proto
     [ProtoContract]
     public class Contributor
     {
-        [ProtoMember(1)] public int CoinCount { get; set; }
+        [ProtoMember(1)] public long Score { get; set; }
         [ProtoMember(2)] public UserIdentity? User { get; set; }
-        [ProtoMember(3)] public int Rank { get; set; }
+        [ProtoMember(3)] public long Rank { get; set; }
         [ProtoMember(4)] public long Delta { get; set; }
     }
 
@@ -98,6 +99,14 @@ namespace TikTokLive.Proto
         [ProtoMember(6)] public long Popularity { get; set; }
         [ProtoMember(7)] public int TotalUser { get; set; }
         [ProtoMember(8)] public long Anonymous { get; set; }
+
+        /// <summary>
+        /// The top-viewers box next to the viewer counter (usually the top 3 ranked
+        /// by contribution score). Entries without a decoded user are skipped; the
+        /// rest come back sorted by rank.
+        /// </summary>
+        public List<Contributor> TopViewers()
+            => RanksList.Where(c => c.User != null).OrderBy(c => c.Rank).ToList();
     }
 
     [ProtoContract]

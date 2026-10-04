@@ -12,38 +12,62 @@ namespace TikTokLive.Auth
     {
         private const string TikTokUrl = "https://www.tiktok.com/";
 
-        public static async Task<string> FetchTtwidAsync(
+        // TikTok only sets ttwid on ~1 in 5-8 anonymous GETs — retry when it's absent.
+        public const int FetchAttempts = 8;
+        public static readonly TimeSpan RetryDelay = TimeSpan.FromMilliseconds(750);
+
+        public static Task<string> FetchTtwidAsync(
             TimeSpan timeout, string? userAgent = null, IWebProxy? proxy = null,
             CancellationToken ct = default)
         {
-            string ua = userAgent ?? UserAgent.RandomUa();
-
             var handler = new HttpClientHandler { AllowAutoRedirect = false };
             if (proxy != null)
             {
                 handler.Proxy = proxy;
                 handler.UseProxy = true;
             }
+            return FetchTtwidAsync(handler, TikTokUrl, timeout, userAgent ?? UserAgent.RandomUa(),
+                FetchAttempts, RetryDelay, ct);
+        }
 
+        /// <summary>
+        /// Retries only when the response carries no ttwid cookie; transport errors propagate.
+        /// </summary>
+        internal static async Task<string> FetchTtwidAsync(
+            HttpMessageHandler handler, string url, TimeSpan timeout, string userAgent,
+            int attempts, TimeSpan retryDelay, CancellationToken ct)
+        {
             using (handler)
             using (var client = new HttpClient(handler) { Timeout = timeout })
             {
-                client.DefaultRequestHeaders.UserAgent.ParseAdd(ua);
-                using (var response = await client.GetAsync(TikTokUrl, ct).ConfigureAwait(false))
+                client.DefaultRequestHeaders.UserAgent.ParseAdd(userAgent);
+                for (int attempt = 1; ; attempt++)
                 {
-                    if (response.Headers.TryGetValues("Set-Cookie", out var cookies))
+                    using (var response = await client.GetAsync(url, ct).ConfigureAwait(false))
                     {
-                        foreach (string cookie in cookies)
-                        {
-                            string? ttwid = ExtractTtwid(cookie);
-                            if (ttwid != null)
-                                return ttwid;
-                        }
+                        string? ttwid = FindTtwid(response);
+                        if (ttwid != null)
+                            return ttwid;
+                        if (attempt >= attempts)
+                            throw new TikTokLiveException(
+                                $"no ttwid cookie after {attempt} attempts (last HTTP {(int)response.StatusCode})");
                     }
-
-                    throw new TikTokLiveException("no ttwid cookie in tiktok.com response");
+                    await Task.Delay(retryDelay, ct).ConfigureAwait(false);
                 }
             }
+        }
+
+        private static string? FindTtwid(HttpResponseMessage response)
+        {
+            if (!response.Headers.TryGetValues("Set-Cookie", out var cookies))
+                return null;
+            foreach (string cookie in cookies)
+            {
+                string? ttwid = ExtractTtwid(cookie);
+                if (!string.IsNullOrEmpty(ttwid))
+                    return ttwid;
+            }
+            return null;
         }
 
         private static string? ExtractTtwid(string setCookieHeader)

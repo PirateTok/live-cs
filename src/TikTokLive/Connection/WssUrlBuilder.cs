@@ -5,8 +5,10 @@ namespace TikTokLive.Connection
     internal static class WssUrlBuilder
     {
         public static string Build(string cdnHost, string roomId, string timezone,
-            string language = "en", string region = "US", bool compress = true)
+            string language = "en", string region = "US", bool compress = true,
+            TimeSpan? heartbeatInterval = null)
         {
+            long heartbeatMs = (long)(heartbeatInterval ?? TimeSpan.FromSeconds(10)).TotalMilliseconds;
             double lastRtt = 100.0 + new Random().NextDouble() * 100.0;
             string rttStr = lastRtt.ToString("F3");
             string browserLanguage = $"{language}-{region}";
@@ -38,7 +40,7 @@ namespace TikTokLive.Connection
                 "identity=audience",
                 "history_comment_count=6",
                 "last_rtt=" + rttStr,
-                "heartbeat_duration=10000",
+                "heartbeat_duration=" + heartbeatMs,
                 "resp_content_type=protobuf",
                 "did_rule=3",
             });

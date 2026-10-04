@@ -11,7 +11,14 @@ namespace TikTokLive.Http
     public class RoomIdResult
     {
         public string RoomId { get; }
-        public RoomIdResult(string roomId) => RoomId = roomId;
+        /// <summary>Streamer's user ID (`data.user.id`); feeds <see cref="HttpApi.FetchRoomAudienceAsync"/>.</summary>
+        public string AnchorId { get; }
+
+        public RoomIdResult(string roomId, string anchorId)
+        {
+            RoomId = roomId;
+            AnchorId = anchorId;
+        }
     }
 
     public class RoomInfo
@@ -33,7 +40,7 @@ namespace TikTokLive.Http
         public string? FlvAo { get; set; }
     }
 
-    public static class HttpApi
+    public static partial class HttpApi
     {
         private const string TikTokUrlWeb = "https://www.tiktok.com/";
         private const string TikTokUrlWebcast = "https://webcast.tiktok.com/webcast/";
@@ -90,11 +97,13 @@ namespace TikTokLive.Http
                         throw new TikTokApiException(statusCode);
 
                     string roomId = "";
+                    string anchorId = "";
                     if (root.TryGetProperty("data", out JsonElement data) &&
-                        data.TryGetProperty("user", out JsonElement user) &&
-                        user.TryGetProperty("roomId", out JsonElement roomIdEl))
+                        data.TryGetProperty("user", out JsonElement user))
                     {
-                        roomId = roomIdEl.GetString() ?? "";
+                        if (user.TryGetProperty("roomId", out JsonElement roomIdEl))
+                            roomId = roomIdEl.GetString() ?? "";
+                        anchorId = GetIdString(user, "id");
                     }
 
                     if (string.IsNullOrEmpty(roomId) || roomId == "0")
@@ -115,7 +124,7 @@ namespace TikTokLive.Http
                     if (liveStatus != 2)
                         throw new HostNotOnlineException($"status={liveStatus}");
 
-                    return new RoomIdResult(roomId);
+                    return new RoomIdResult(roomId, anchorId);
                 }
             }
         }
@@ -265,6 +274,18 @@ namespace TikTokLive.Http
             if (el.TryGetProperty(prop, out JsonElement v) && v.TryGetInt64(out long val))
                 return val;
             return 0;
+        }
+
+        /// <summary>An ID that TikTok serves as either a JSON string or a number.</summary>
+        private static string GetIdString(JsonElement el, string prop)
+        {
+            if (!el.TryGetProperty(prop, out JsonElement v))
+                return "";
+            if (v.ValueKind == JsonValueKind.String)
+                return v.GetString() ?? "";
+            if (v.ValueKind == JsonValueKind.Number && v.TryGetInt64(out long n))
+                return n.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            return "";
         }
     }
 }
